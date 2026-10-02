@@ -1,38 +1,187 @@
 # terminal-colors.zsh
-# Gives every new macOS Terminal window/tab its own background color,
-# rotating through a palette, so parallel sessions are easy to tell apart.
+# Gives every new macOS Terminal window/tab a random HTML color name as its
+# background, with matching readable text, and shows the name in the title.
 #
 # https://github.com/evanroth/terminal-colors
 # Evan Roth, public domain (CC0)
 #
 # Install: source this file from ~/.zshrc
-# Customize: define TERMINAL_COLORS before sourcing, e.g.
-#   TERMINAL_COLORS=("65535 65535 0" "0 60000 65535")   # R G B, each 0-65535
+# Commands:
+#   newcolor     pick another random color for this window
+#   whatcolor    print this window's color name
+# Customize: define TERMINAL_COLORS before sourcing, as
+#   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
+#   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
 
 if [[ $TERM_PROGRAM == "Apple_Terminal" && -o interactive ]]; then
-  : ${TERMINAL_COLORS_STATE:=$HOME/.terminal_color_index}
 
+  # The 148 HTML/CSS color names. Text color follows W3Schools'
+  # color-names page: white if brightness (0.299R+0.587G+0.114B) < 150,
+  # otherwise #1F2D3D.
   if (( ! ${+TERMINAL_COLORS} )); then
     TERMINAL_COLORS=(
-      "65535 65535 0"       # yellow
-      "65535 0 65535"       # magenta
-      "0 65535 48000"       # aqua green
-      "65535 42000 0"       # orange
-      "30000 50000 65535"   # sky blue
-      "40000 65535 0"       # lime
-      "65535 30000 45000"   # pink
-      "45000 35000 65535"   # lavender
-      "65535 35000 30000"   # coral
-      "0 60000 65535"       # cyan
+      "AliceBlue F0F8FF 1F2D3D"
+      "AntiqueWhite FAEBD7 1F2D3D"
+      "Aqua 00FFFF 1F2D3D"
+      "Aquamarine 7FFFD4 1F2D3D"
+      "Azure F0FFFF 1F2D3D"
+      "Beige F5F5DC 1F2D3D"
+      "Bisque FFE4C4 1F2D3D"
+      "Black 000000 FFFFFF"
+      "BlanchedAlmond FFEBCD 1F2D3D"
+      "Blue 0000FF FFFFFF"
+      "BlueViolet 8A2BE2 FFFFFF"
+      "Brown A52A2A FFFFFF"
+      "BurlyWood DEB887 1F2D3D"
+      "CadetBlue 5F9EA0 FFFFFF"
+      "Chartreuse 7FFF00 1F2D3D"
+      "Chocolate D2691E FFFFFF"
+      "Coral FF7F50 1F2D3D"
+      "CornflowerBlue 6495ED FFFFFF"
+      "Cornsilk FFF8DC 1F2D3D"
+      "Crimson DC143C FFFFFF"
+      "Cyan 00FFFF 1F2D3D"
+      "DarkBlue 00008B FFFFFF"
+      "DarkCyan 008B8B FFFFFF"
+      "DarkGoldenRod B8860B FFFFFF"
+      "DarkGray A9A9A9 1F2D3D"
+      "DarkGrey A9A9A9 1F2D3D"
+      "DarkGreen 006400 FFFFFF"
+      "DarkKhaki BDB76B 1F2D3D"
+      "DarkMagenta 8B008B FFFFFF"
+      "DarkOliveGreen 556B2F FFFFFF"
+      "DarkOrange FF8C00 1F2D3D"
+      "DarkOrchid 9932CC FFFFFF"
+      "DarkRed 8B0000 FFFFFF"
+      "DarkSalmon E9967A 1F2D3D"
+      "DarkSeaGreen 8FBC8F 1F2D3D"
+      "DarkSlateBlue 483D8B FFFFFF"
+      "DarkSlateGray 2F4F4F FFFFFF"
+      "DarkSlateGrey 2F4F4F FFFFFF"
+      "DarkTurquoise 00CED1 FFFFFF"
+      "DarkViolet 9400D3 FFFFFF"
+      "DeepPink FF1493 FFFFFF"
+      "DeepSkyBlue 00BFFF FFFFFF"
+      "DimGray 696969 FFFFFF"
+      "DimGrey 696969 FFFFFF"
+      "DodgerBlue 1E90FF FFFFFF"
+      "FireBrick B22222 FFFFFF"
+      "FloralWhite FFFAF0 1F2D3D"
+      "ForestGreen 228B22 FFFFFF"
+      "Fuchsia FF00FF FFFFFF"
+      "Gainsboro DCDCDC 1F2D3D"
+      "GhostWhite F8F8FF 1F2D3D"
+      "Gold FFD700 1F2D3D"
+      "GoldenRod DAA520 1F2D3D"
+      "Gray 808080 FFFFFF"
+      "Grey 808080 FFFFFF"
+      "Green 008000 FFFFFF"
+      "GreenYellow ADFF2F 1F2D3D"
+      "HoneyDew F0FFF0 1F2D3D"
+      "HotPink FF69B4 1F2D3D"
+      "IndianRed CD5C5C FFFFFF"
+      "Indigo 4B0082 FFFFFF"
+      "Ivory FFFFF0 1F2D3D"
+      "Khaki F0E68C 1F2D3D"
+      "Lavender E6E6FA 1F2D3D"
+      "LavenderBlush FFF0F5 1F2D3D"
+      "LawnGreen 7CFC00 1F2D3D"
+      "LemonChiffon FFFACD 1F2D3D"
+      "LightBlue ADD8E6 1F2D3D"
+      "LightCoral F08080 1F2D3D"
+      "LightCyan E0FFFF 1F2D3D"
+      "LightGoldenRodYellow FAFAD2 1F2D3D"
+      "LightGray D3D3D3 1F2D3D"
+      "LightGrey D3D3D3 1F2D3D"
+      "LightGreen 90EE90 1F2D3D"
+      "LightPink FFB6C1 1F2D3D"
+      "LightSalmon FFA07A 1F2D3D"
+      "LightSeaGreen 20B2AA FFFFFF"
+      "LightSkyBlue 87CEFA 1F2D3D"
+      "LightSlateGray 778899 FFFFFF"
+      "LightSlateGrey 778899 FFFFFF"
+      "LightSteelBlue B0C4DE 1F2D3D"
+      "LightYellow FFFFE0 1F2D3D"
+      "Lime 00FF00 FFFFFF"
+      "LimeGreen 32CD32 FFFFFF"
+      "Linen FAF0E6 1F2D3D"
+      "Magenta FF00FF FFFFFF"
+      "Maroon 800000 FFFFFF"
+      "MediumAquaMarine 66CDAA 1F2D3D"
+      "MediumBlue 0000CD FFFFFF"
+      "MediumOrchid BA55D3 FFFFFF"
+      "MediumPurple 9370DB FFFFFF"
+      "MediumSeaGreen 3CB371 FFFFFF"
+      "MediumSlateBlue 7B68EE FFFFFF"
+      "MediumSpringGreen 00FA9A 1F2D3D"
+      "MediumTurquoise 48D1CC 1F2D3D"
+      "MediumVioletRed C71585 FFFFFF"
+      "MidnightBlue 191970 FFFFFF"
+      "MintCream F5FFFA 1F2D3D"
+      "MistyRose FFE4E1 1F2D3D"
+      "Moccasin FFE4B5 1F2D3D"
+      "NavajoWhite FFDEAD 1F2D3D"
+      "Navy 000080 FFFFFF"
+      "OldLace FDF5E6 1F2D3D"
+      "Olive 808000 FFFFFF"
+      "OliveDrab 6B8E23 FFFFFF"
+      "Orange FFA500 1F2D3D"
+      "OrangeRed FF4500 FFFFFF"
+      "Orchid DA70D6 1F2D3D"
+      "PaleGoldenRod EEE8AA 1F2D3D"
+      "PaleGreen 98FB98 1F2D3D"
+      "PaleTurquoise AFEEEE 1F2D3D"
+      "PaleVioletRed DB7093 FFFFFF"
+      "PapayaWhip FFEFD5 1F2D3D"
+      "PeachPuff FFDAB9 1F2D3D"
+      "Peru CD853F FFFFFF"
+      "Pink FFC0CB 1F2D3D"
+      "Plum DDA0DD 1F2D3D"
+      "PowderBlue B0E0E6 1F2D3D"
+      "Purple 800080 FFFFFF"
+      "RebeccaPurple 663399 FFFFFF"
+      "Red FF0000 FFFFFF"
+      "RosyBrown BC8F8F 1F2D3D"
+      "RoyalBlue 4169E1 FFFFFF"
+      "SaddleBrown 8B4513 FFFFFF"
+      "Salmon FA8072 1F2D3D"
+      "SandyBrown F4A460 1F2D3D"
+      "SeaGreen 2E8B57 FFFFFF"
+      "SeaShell FFF5EE 1F2D3D"
+      "Sienna A0522D FFFFFF"
+      "Silver C0C0C0 1F2D3D"
+      "SkyBlue 87CEEB 1F2D3D"
+      "SlateBlue 6A5ACD FFFFFF"
+      "SlateGray 708090 FFFFFF"
+      "SlateGrey 708090 FFFFFF"
+      "Snow FFFAFA 1F2D3D"
+      "SpringGreen 00FF7F 1F2D3D"
+      "SteelBlue 4682B4 FFFFFF"
+      "Tan D2B48C 1F2D3D"
+      "Teal 008080 FFFFFF"
+      "Thistle D8BFD8 1F2D3D"
+      "Tomato FF6347 FFFFFF"
+      "Turquoise 40E0D0 1F2D3D"
+      "Violet EE82EE 1F2D3D"
+      "Wheat F5DEB3 1F2D3D"
+      "White FFFFFF 1F2D3D"
+      "WhiteSmoke F5F5F5 1F2D3D"
+      "Yellow FFFF00 1F2D3D"
+      "YellowGreen 9ACD32 1F2D3D"
     )
   fi
 
-  () {
-    local last=$(cat $TERMINAL_COLORS_STATE 2>/dev/null)
-    [[ $last == <-> ]] || last=0
-    local n=$(( last % ${#TERMINAL_COLORS} + 1 ))
-    echo $n >| $TERMINAL_COLORS_STATE
-    local rgb=(${=TERMINAL_COLORS[$n]})
+  # "RRGGBB" -> "{r, g, b}" in AppleScript's 0-65535 range
+  _terminal_colors_as() {
+    print -n "{$(( 16#${1[1,2]} * 257 )), $(( 16#${1[3,4]} * 257 )), $(( 16#${1[5,6]} * 257 ))}"
+  }
+
+  _terminal_colors_apply() {  # name background-hex text-hex
+    export TERMINAL_COLOR_NAME=$1
+    local bg=$(_terminal_colors_as $2) fg=$(_terminal_colors_as $3)
+
+    # Window title (programs like Claude Code may replace it while they run)
+    print -n "\e]0;$1\a"
 
     # AppleScript fails inside Rosetta (Intel emulation) on Apple Silicon,
     # so always run it natively there.
@@ -42,9 +191,24 @@ if [[ $TERM_PROGRAM == "Apple_Terminal" && -o interactive ]]; then
     $osa -e "tell application \"Terminal\"
       repeat with w in windows
         repeat with t in tabs of w
-          if tty of t is \"$(tty)\" then set background color of t to {${rgb[1]}, ${rgb[2]}, ${rgb[3]}}
+          if tty of t is \"$TTY\" then
+            set background color of t to $bg
+            set normal text color of t to $fg
+            set bold text color of t to $fg
+            set cursor color of t to $fg
+          end if
         end repeat
       end repeat
     end tell" >/dev/null 2>&1 &!
   }
+
+  newcolor() {
+    local r=$(( $(od -An -N2 -tu2 /dev/urandom) % ${#TERMINAL_COLORS} + 1 ))
+    _terminal_colors_apply ${=TERMINAL_COLORS[$r]}
+    [[ $1 == -q ]] || print $TERMINAL_COLOR_NAME
+  }
+
+  whatcolor() { print $TERMINAL_COLOR_NAME }
+
+  newcolor -q
 fi

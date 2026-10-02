@@ -1,6 +1,6 @@
 # terminal-colors
 
-Every new macOS Terminal window or tab gets its own background color, rotating through a bright palette. When you have five sessions open at once (say, five Claude Code projects), you can tell them apart at a glance.
+Every new macOS Terminal window or tab gets a random [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) as its background, from AliceBlue to YellowGreen. The text color is set so it stays readable, and the color's name shows in the window title. When you have five sessions open at once (say, five Claude Code projects), you can tell them apart at a glance, and refer to them by name: "the Tomato one."
 
 No more making a new Terminal profile by hand each time.
 
@@ -15,25 +15,31 @@ echo 'source ~/.terminal-colors.zsh' >> ~/.zshrc
 
 Then open a new window (⌘N). The first time, macOS asks whether **Terminal** may control **Terminal**. Click **OK**. If you missed it, turn it on in System Settings → Privacy & Security → Automation → Terminal.
 
+## Commands
+
+- `newcolor`: don't like the color you got? Roll again.
+- `whatcolor`: print this window's color name.
+
 ## How it works
 
 When a new window or tab starts its shell, the script:
 
-1. reads the last color used from `~/.terminal_color_index`,
-2. picks the next one in the palette,
-3. uses AppleScript to set the background of *that* tab (found by its tty, so it hits the right window even if you switch away).
+1. picks one of the 148 HTML/CSS color names at random,
+2. picks the text color the way the [W3Schools color names page](https://www.w3schools.com/tags/ref_colornames.asp) does: white (`#FFFFFF`) if the color's brightness (0.299 R + 0.587 G + 0.114 B) is under 150, otherwise dark slate (`#1F2D3D`),
+3. uses AppleScript to set the background, text, bold and cursor colors of *that* tab (found by its tty, so it hits the right window even if you switch away),
+4. sets the window title to the color name.
 
-The palette has 10 colors that all work with black text. Window 11 starts again from the first color.
+**About the title:** programs that set their own title (Claude Code, vim, ssh, etc.) replace it while they run. Run `whatcolor` to check.
 
 ## Customize
 
-Define your own palette **before** the `source` line in `~/.zshrc`. Each color is R G B, with each value from 0 to 65535:
+Define your own palette **before** the `source` line in `~/.zshrc`. Each entry is `Name BACKGROUND TEXT`, with hex colors:
 
 ```zsh
 TERMINAL_COLORS=(
-  "65535 65535 0"    # yellow
-  "0 60000 65535"    # cyan
-  "65535 0 65535"    # magenta
+  "Tomato FF6347 FFFFFF"
+  "Gold FFD700 1F2D3D"
+  "Teal 008080 FFFFFF"
 )
 source ~/.terminal-colors.zsh
 ```
@@ -42,11 +48,11 @@ source ~/.terminal-colors.zsh
 
 - **Apple Terminal only.** In iTerm2 and other terminals it does nothing.
 - **Apple Silicon + Rosetta:** if Terminal is set to "Open using Rosetta", AppleScript fails with `can't open default scripting component`. The script works around this by running AppleScript natively. You can also uncheck *Open using Rosetta* in Terminal's Get Info window.
-- Restored windows after a Terminal restart each get a new color.
+- Colors are random, so two windows can occasionally match. Use `newcolor`.
 
 ## Uninstall
 
-Remove the `source ~/.terminal-colors.zsh` line from `~/.zshrc` and delete `~/.terminal-colors.zsh` and `~/.terminal_color_index`.
+Remove the `source ~/.terminal-colors.zsh` line from `~/.zshrc` and delete `~/.terminal-colors.zsh`.
 
 ## License
 
