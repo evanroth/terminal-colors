@@ -24,10 +24,12 @@ Then open a new window (⌘N). In Terminal, the first time, macOS asks whether *
 
 When a new window or tab starts its shell, the script:
 
-1. picks one of the 148 HTML/CSS color names at random,
+1. picks one of the 148 HTML/CSS color names using zsh's built-in random number generator,
 2. picks the text color the way the [W3Schools color names page](https://www.w3schools.com/tags/ref_colornames.asp) does: white (`#FFFFFF`) if the color's brightness (0.299 R + 0.587 G + 0.114 B) is under 150, otherwise dark slate (`#1F2D3D`),
 3. sets the background, text, bold and cursor colors of *that* tab: in Terminal with AppleScript (finding the tab by its tty, so it hits the right window even if you switch away), in iTerm2 with its `SetColors` escape sequences,
 4. sets the window title to the color name.
+
+Terminal stops searching as soon as it finds the matching tab.
 
 **About the title:** programs that set their own title (Claude Code, vim, ssh, etc.) replace it while they run. Run `whatcolor` to check.
 
