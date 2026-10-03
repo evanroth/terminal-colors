@@ -1,5 +1,9 @@
 # terminal-colors
 
+[![A Terminal window cycling through named background colors.](https://terminalcolors.evan-roth.com/terminal-colors.gif?v=2)](https://terminalcolors.evan-roth.com/)
+
+[Visit the Terminal Colors website.](https://terminalcolors.evan-roth.com/)
+
 Every new macOS Terminal or iTerm2 window or tab gets a random [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) as its background, from AliceBlue to YellowGreen. The text color is set so it stays readable, and the color's name shows in the window title. When you have five sessions open at once (say, five Claude Code projects), you can tell them apart at a glance, and refer to them by name: "the Tomato one."
 
 No more making a new Terminal profile by hand each time.
