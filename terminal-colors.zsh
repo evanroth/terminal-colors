@@ -1,6 +1,7 @@
 # terminal-colors.zsh
-# Gives every new macOS Terminal window/tab a random HTML color name as its
-# background, with matching readable text, and shows the name in the title.
+# Gives every new macOS Terminal or iTerm2 window/tab a random HTML color name
+# as its background, with matching readable text, and shows the name in the
+# title.
 #
 # https://github.com/evanroth/terminal-colors
 # Evan Roth, public domain (CC0)
@@ -13,7 +14,7 @@
 #   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
 #   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
 
-if [[ $TERM_PROGRAM == "Apple_Terminal" && -o interactive ]]; then
+if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -o interactive ]]; then
 
   # The 148 HTML/CSS color names. Text color follows W3Schools'
   # color-names page: white if brightness (0.299R+0.587G+0.114B) < 150,
@@ -178,10 +179,19 @@ if [[ $TERM_PROGRAM == "Apple_Terminal" && -o interactive ]]; then
 
   _terminal_colors_apply() {  # name background-hex text-hex
     export TERMINAL_COLOR_NAME=$1
-    local bg=$(_terminal_colors_as $2) fg=$(_terminal_colors_as $3)
 
     # Window title (programs like Claude Code may replace it while they run)
     print -n "\e]0;$1\a"
+
+    # iTerm2 sets colors with escape sequences, for this session only
+    if [[ $TERM_PROGRAM == "iTerm.app" ]]; then
+      local key
+      print -n "\e]1337;SetColors=bg=$2\a"
+      for key in fg bold curbg; print -n "\e]1337;SetColors=$key=$3\a"
+      return
+    fi
+
+    local bg=$(_terminal_colors_as $2) fg=$(_terminal_colors_as $3)
 
     # AppleScript fails inside Rosetta (Intel emulation) on Apple Silicon,
     # so always run it natively there.
