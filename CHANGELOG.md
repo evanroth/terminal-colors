@@ -2,6 +2,10 @@
 
 To upgrade, see [Upgrade](README.md#upgrade) in the README.
 
+## 1.0.4 (2026-10-04)
+
+- `upgradecolors` command: downloads the latest version over your copy. It checks the download first and leaves your copy alone if anything looks wrong.
+
 ## 1.0.3 (2026-10-04)
 
 - New windows change color instantly: background, text and cursor colors are now set with escape sequences instead of AppleScript. Colors also match the HTML colors more closely.

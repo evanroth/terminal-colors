@@ -4,7 +4,7 @@
 
 [Visit the Terminal Colors website.](https://terminalcolors.evan-roth.com/)
 
-Version 1.0.3 · [Changelog](CHANGELOG.md)
+Version 1.0.4 · [Changelog](CHANGELOG.md)
 
 Every new macOS Terminal or iTerm2 window or tab gets a random [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) as its background, from AliceBlue to YellowGreen. The text color is set so it stays readable, the color's name is printed in big letters at the top of the window, and it shows in the window title. When you have five sessions open at once you can tell them apart at a glance, and refer to them by name: "the Tomato one."
 
@@ -23,7 +23,15 @@ Then open a new window (⌘N). In Terminal, the first time, macOS asks whether *
 
 ## Upgrade
 
-Already installed? Download the latest version over your copy:
+Already installed? Run:
+
+```zsh
+upgradecolors
+```
+
+It downloads the latest version over your copy (checking it first), then tells you to open a new window.
+
+`upgradecolors` arrived in 1.0.4. On older versions, download the latest version over your copy instead:
 
 ```zsh
 curl -fsSL https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh -o ~/.terminal-colors.zsh
@@ -37,6 +45,7 @@ To see which version you have, run `echo $TERMINAL_COLORS_VERSION` (versions bef
 
 - `newcolor`: don't like the color you got? Roll again.
 - `whatcolor`: print this window's color name.
+- `upgradecolors`: upgrade to the latest version.
 
 ## How it works
 

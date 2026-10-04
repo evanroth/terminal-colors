@@ -5,19 +5,45 @@
 #
 # https://github.com/evanroth/terminal-colors
 # Evan Roth, public domain (CC0)
-# Version 1.0.3 (check yours with: echo $TERMINAL_COLORS_VERSION)
+# Version 1.0.4 (check yours with: echo $TERMINAL_COLORS_VERSION)
 #
 # Install: source this file from ~/.zshrc
 # Commands:
 #   newcolor     pick another random color for this window
 #   whatcolor    print this window's color name
+#   upgradecolors  download the latest version over this file
 # New windows also print their color's name in big letters; set
 # TERMINAL_COLORS_BANNER=0 before sourcing to turn that off.
 # Customize: define TERMINAL_COLORS before sourcing, as
 #   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
 #   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
 
-typeset -g TERMINAL_COLORS_VERSION=1.0.3
+typeset -g TERMINAL_COLORS_VERSION=1.0.4
+typeset -g TERMINAL_COLORS_FILE=${${(%):-%x}:A}   # this file, for upgradecolors
+
+# Download the latest version from GitHub over this file. Checks the download
+# first and leaves your copy alone if anything looks wrong.
+upgradecolors() {
+  emulate -L zsh
+  autoload -Uz is-at-least
+  local url=https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh
+  local tmp=$(mktemp) new
+  if ! curl -fsSL $url -o $tmp; then
+    print -u2 "upgradecolors: download failed, nothing changed"
+    rm -f $tmp; return 1
+  fi
+  new=${${(M)${(f)"$(<$tmp)"}:#typeset -g TERMINAL_COLORS_VERSION=*}#*=}
+  if [[ -z $new ]] || ! zsh -n $tmp; then
+    print -u2 "upgradecolors: the download doesn't look right, nothing changed"
+    rm -f $tmp; return 1
+  fi
+  if is-at-least $new $TERMINAL_COLORS_VERSION; then
+    print "Terminal Colors is up to date ($TERMINAL_COLORS_VERSION)."
+    rm -f $tmp; return
+  fi
+  cat $tmp > $TERMINAL_COLORS_FILE && rm -f $tmp || return 1
+  print "Terminal Colors upgraded from $TERMINAL_COLORS_VERSION to $new. Open a new window to use it."
+}
 
 if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -o interactive ]]; then
 
