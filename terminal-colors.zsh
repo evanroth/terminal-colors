@@ -5,6 +5,7 @@
 #
 # https://github.com/evanroth/terminal-colors
 # Evan Roth, public domain (CC0)
+# Version 1.0.3 (check yours with: echo $TERMINAL_COLORS_VERSION)
 #
 # Install: source this file from ~/.zshrc
 # Commands:
@@ -15,6 +16,8 @@
 # Customize: define TERMINAL_COLORS before sourcing, as
 #   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
 #   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
+
+typeset -g TERMINAL_COLORS_VERSION=1.0.3
 
 if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -o interactive ]]; then
 
