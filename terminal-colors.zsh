@@ -172,13 +172,8 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
     )
   fi
 
-  # "RRGGBB" -> "{r, g, b}" in AppleScript's 0-65535 range
-  _terminal_colors_as() {
-    print -n "{$(( 16#${1[1,2]} * 257 )), $(( 16#${1[3,4]} * 257 )), $(( 16#${1[5,6]} * 257 ))}"
-  }
-
   _terminal_colors_apply() {  # name background-hex text-hex
-    export TERMINAL_COLOR_NAME=$1
+    export TERMINAL_COLOR_NAME=$1 TERMINAL_COLOR_BG=$2
 
     # Window title (programs like Claude Code may replace it while they run)
     print -n "\e]0;$1\a"
@@ -191,7 +186,8 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
       return
     fi
 
-    local bg=$(_terminal_colors_as $2) fg=$(_terminal_colors_as $3)
+    local bg="{$(( 16#${2[1,2]} * 257 )), $(( 16#${2[3,4]} * 257 )), $(( 16#${2[5,6]} * 257 ))}"
+    local fg="{$(( 16#${3[1,2]} * 257 )), $(( 16#${3[3,4]} * 257 )), $(( 16#${3[5,6]} * 257 ))}"
 
     # AppleScript fails inside Rosetta (Intel emulation) on Apple Silicon,
     # so always run it natively there.
@@ -206,6 +202,7 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
             set normal text color of t to $fg
             set bold text color of t to $fg
             set cursor color of t to $fg
+            return
           end if
         end repeat
       end repeat
@@ -213,7 +210,7 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
   }
 
   newcolor() {
-    local r=$(( $(od -An -N2 -tu2 /dev/urandom) % ${#TERMINAL_COLORS} + 1 ))
+    local r=$(( RANDOM % ${#TERMINAL_COLORS} + 1 ))
     _terminal_colors_apply ${=TERMINAL_COLORS[$r]}
     [[ $1 == -q ]] || print $TERMINAL_COLOR_NAME
   }
