@@ -10,6 +10,8 @@
 # Commands:
 #   newcolor     pick another random color for this window
 #   whatcolor    print this window's color name
+# New windows also print their color's name in big letters; set
+# TERMINAL_COLORS_BANNER=0 before sourcing to turn that off.
 # Customize: define TERMINAL_COLORS before sourcing, as
 #   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
 #   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
@@ -172,6 +174,93 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
     )
   fi
 
+  # Letters A-Z of the figlet font "ANSI Shadow" (a TheDraw font converted
+  # with patorjk.com's FIGfont editor), 6 rows each, separated by |
+  typeset -gA _terminal_colors_glyphs=(
+    A ' █████╗ |██╔══██╗|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝'
+    B '██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██████╔╝|╚═════╝ '
+    C ' ██████╗|██╔════╝|██║     |██║     |╚██████╗| ╚═════╝'
+    D '██████╗ |██╔══██╗|██║  ██║|██║  ██║|██████╔╝|╚═════╝ '
+    E '███████╗|██╔════╝|█████╗  |██╔══╝  |███████╗|╚══════╝'
+    F '███████╗|██╔════╝|█████╗  |██╔══╝  |██║     |╚═╝     '
+    G ' ██████╗ |██╔════╝ |██║  ███╗|██║   ██║|╚██████╔╝| ╚═════╝ '
+    H '██╗  ██╗|██║  ██║|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝'
+    I '██╗|██║|██║|██║|██║|╚═╝'
+    J '     ██╗|     ██║|     ██║|██   ██║|╚█████╔╝| ╚════╝ '
+    K '██╗  ██╗|██║ ██╔╝|█████╔╝ |██╔═██╗ |██║  ██╗|╚═╝  ╚═╝'
+    L '██╗     |██║     |██║     |██║     |███████╗|╚══════╝'
+    M '███╗   ███╗|████╗ ████║|██╔████╔██║|██║╚██╔╝██║|██║ ╚═╝ ██║|╚═╝     ╚═╝'
+    N '███╗   ██╗|████╗  ██║|██╔██╗ ██║|██║╚██╗██║|██║ ╚████║|╚═╝  ╚═══╝'
+    O ' ██████╗ |██╔═══██╗|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ '
+    P '██████╗ |██╔══██╗|██████╔╝|██╔═══╝ |██║     |╚═╝     '
+    Q ' ██████╗ |██╔═══██╗|██║   ██║|██║▄▄ ██║|╚██████╔╝| ╚══▀▀═╝ '
+    R '██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██║  ██║|╚═╝  ╚═╝'
+    S '███████╗|██╔════╝|███████╗|╚════██║|███████║|╚══════╝'
+    T '████████╗|╚══██╔══╝|   ██║   |   ██║   |   ██║   |   ╚═╝   '
+    U '██╗   ██╗|██║   ██║|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ '
+    V '██╗   ██╗|██║   ██║|██║   ██║|╚██╗ ██╔╝| ╚████╔╝ |  ╚═══╝  '
+    W '██╗    ██╗|██║    ██║|██║ █╗ ██║|██║███╗██║|╚███╔███╔╝| ╚══╝╚══╝ '
+    X '██╗  ██╗|╚██╗██╔╝| ╚███╔╝ | ██╔██╗ |██╔╝ ██╗|╚═╝  ╚═╝'
+    Y '██╗   ██╗|╚██╗ ██╔╝| ╚████╔╝ |  ╚██╔╝  |   ██║   |   ╚═╝   '
+    Z '███████╗|╚══███╔╝|  ███╔╝ | ███╔╝  |███████╗|╚══════╝'
+  )
+
+  # Draw a word in big letters into $reply (6 rows). Each letter slides left
+  # until it touches the previous one (figlet's "fitting" layout).
+  _terminal_colors_art() {
+    setopt localoptions extendedglob
+    local ch a mid
+    local -i r k n x cut
+    local -a g
+    reply=('' '' '' '' '' '')
+    for ch in ${(s::)${(U)1}}; do
+      (( ${+_terminal_colors_glyphs[$ch]} )) || continue
+      g=("${(@s:|:)_terminal_colors_glyphs[$ch]}")
+      k=${#reply[1]}
+      for r in {1..6}; do
+        n=$(( ${#reply[r]} - ${#${reply[r]%% #}} + ${#g[r]} - ${#${g[r]## #}} ))
+        (( ${#reply[r]} < k )) && k=${#reply[r]}
+        (( n < k )) && k=n
+      done
+      for r in {1..6}; do
+        a=${reply[r]} cut=$(( ${#a} - k )) mid=
+        for (( x = 1; x <= k; x++ )); do
+          if [[ ${a[cut+x]} != ' ' ]]; then mid+=${a[cut+x]}; else mid+=${g[r][x]:- }; fi
+        done
+        reply[r]=${a[1,cut]}$mid${g[r][k+1,-1]}
+      done
+    done
+    reply=("${(@)reply%% #}")
+  }
+
+  # Print the color name in big letters, breaking long names at their
+  # capital letters to fit the window. Outlines are dimmed.
+  _terminal_colors_banner() {
+    setopt localoptions extendedglob
+    [[ ${#${:-█}} == 1 ]] || return   # needs a UTF-8 locale
+    local word cur row dim=$'\e[2m' undim=$'\e[22m'
+    local -i width
+    local -a words lines reply
+    words=(${(s: :)1//(#b)([A-Z])/ $match[1]})
+    for word in $words; do
+      _terminal_colors_art $cur$word
+      width=0
+      for row in $reply; (( ${#row} > width )) && width=${#row}
+      if [[ -n $cur ]] && (( width >= COLUMNS )); then
+        lines+=($cur) cur=$word
+      else
+        cur+=$word
+      fi
+    done
+    lines+=($cur)
+    print
+    for word in $lines; do
+      _terminal_colors_art $word
+      for row in $reply; print -r -- "${row//(#m)[^█ ]##/$dim$MATCH$undim}"
+    done
+    print
+  }
+
   _terminal_colors_apply() {  # name background-hex text-hex
     export TERMINAL_COLOR_NAME=$1 TERMINAL_COLOR_BG=$2
 
@@ -186,7 +275,13 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
       return
     fi
 
-    local bg="{$(( 16#${2[1,2]} * 257 )), $(( 16#${2[3,4]} * 257 )), $(( 16#${2[5,6]} * 257 ))}"
+    # Background, text and cursor colors with escape sequences: instant,
+    # and they survive a terminal reset
+    print -n "\e]11;rgb:${2[1,2]}/${2[3,4]}/${2[5,6]}\a"
+    print -n "\e]10;rgb:${3[1,2]}/${3[3,4]}/${3[5,6]}\a\e]12;rgb:${3[1,2]}/${3[3,4]}/${3[5,6]}\a"
+
+    # Bold text color has no escape sequence, so set it with AppleScript in
+    # the background, on the tab whose tty is ours
     local fg="{$(( 16#${3[1,2]} * 257 )), $(( 16#${3[3,4]} * 257 )), $(( 16#${3[5,6]} * 257 ))}"
 
     # AppleScript fails inside Rosetta (Intel emulation) on Apple Silicon,
@@ -198,10 +293,7 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
       repeat with w in windows
         repeat with t in tabs of w
           if tty of t is \"$TTY\" then
-            set background color of t to $bg
-            set normal text color of t to $fg
             set bold text color of t to $fg
-            set cursor color of t to $fg
             return
           end if
         end repeat
@@ -218,4 +310,5 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
   whatcolor() { print $TERMINAL_COLOR_NAME }
 
   newcolor -q
+  [[ $TERMINAL_COLORS_BANNER == 0 ]] || _terminal_colors_banner $TERMINAL_COLOR_NAME
 fi
