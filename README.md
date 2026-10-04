@@ -1,6 +1,6 @@
 # terminal-colors
 
-[![A Terminal window cycling through named background colors.](https://terminalcolors.evan-roth.com/terminal-colors.gif?v=2)](https://terminalcolors.evan-roth.com/)
+[![A Terminal window cycling through named background colors.](https://terminalcolors.evan-roth.com/terminal-colors.gif?v=3)](https://terminalcolors.evan-roth.com/)
 
 [Visit the Terminal Colors website.](https://terminalcolors.evan-roth.com/)
 
