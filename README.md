@@ -4,22 +4,31 @@
 
 [Visit the Terminal Colors website.](https://terminalcolors.evan-roth.com/)
 
-Version 1.0.4 · [Changelog](CHANGELOG.md)
+Version 1.1.0 · [Changelog](CHANGELOG.md)
 
-Every new macOS Terminal or iTerm2 window or tab gets a random [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) as its background, from AliceBlue to YellowGreen. The text color is set so it stays readable, the color's name is printed in big letters at the top of the window, and it shows in the window title. When you have five sessions open at once you can tell them apart at a glance, and refer to them by name: "the Tomato one."
+Every new terminal window or tab (macOS Terminal, iTerm2, or a Linux terminal) gets a random [HTML color name](https://www.w3schools.com/tags/ref_colornames.asp) as its background, from AliceBlue to YellowGreen. The text color is set so it stays readable, the color's name is printed in big letters at the top of the window, and it shows in the window title. When you have five sessions open at once you can tell them apart at a glance, and refer to them by name: "the Tomato one."
 
 No more making a new Terminal profile by hand each time.
 
 ## Install
 
-Paste this into Terminal (or iTerm2):
+Paste this into Terminal (or iTerm2) if your shell is zsh, the macOS default:
 
 ```zsh
 curl -fsSL https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh -o ~/.terminal-colors.zsh
 echo 'source ~/.terminal-colors.zsh' >> ~/.zshrc
 ```
 
-Then open a new window (⌘N). In Terminal, the first time, macOS asks whether **Terminal** may control **Terminal**. Click **OK**. If you missed it, turn it on in System Settings → Privacy & Security → Automation → Terminal. iTerm2 needs no permission.
+On Linux with bash (the default on most distributions), paste this instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh -o ~/.terminal-colors.sh
+echo 'source ~/.terminal-colors.sh' >> ~/.bashrc
+```
+
+The same file works in zsh and bash 4 or newer. Not sure which shell you use? Run `echo $SHELL`.
+
+Then open a new window (⌘N). In Terminal, the first time, macOS asks whether **Terminal** may control **Terminal**. Click **OK**. If you missed it, turn it on in System Settings → Privacy & Security → Automation → Terminal. iTerm2 and Linux terminals need no permission.
 
 ## Upgrade
 
@@ -31,7 +40,7 @@ upgradecolors
 
 It downloads the latest version over your copy (checking it first), then tells you to open a new window.
 
-`upgradecolors` arrived in 1.0.4. On older versions, download the latest version over your copy instead:
+`upgradecolors` arrived in 1.0.4. On older versions (all macOS and zsh), download the latest version over your copy instead:
 
 ```zsh
 curl -fsSL https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh -o ~/.terminal-colors.zsh
@@ -51,18 +60,18 @@ To see which version you have, run `echo $TERMINAL_COLORS_VERSION` (versions bef
 
 When a new window or tab starts its shell, the script:
 
-1. picks one of the 148 HTML/CSS color names using zsh's built-in random number generator,
+1. picks one of the 148 HTML/CSS color names using the shell's built-in random number generator,
 2. picks the text color the way the [W3Schools color names page](https://www.w3schools.com/tags/ref_colornames.asp) does: white (`#FFFFFF`) if the color's brightness (0.299 R + 0.587 G + 0.114 B) is under 150, otherwise dark slate (`#1F2D3D`),
-3. sets the background, text and cursor colors with escape sequences, so the window changes color as soon as the shell starts (in iTerm2 with its own `SetColors` sequences),
+3. sets the background, text and cursor colors with escape sequences (OSC 10, 11 and 12), so the window changes color as soon as the shell starts (in iTerm2 with its own `SetColors` sequences),
 4. in Terminal, sets the bold text color with AppleScript in the background, since there's no escape sequence for it (it finds the tab by its tty, so it hits the right window even if you switch away),
-5. sets the window title to the color name,
+5. sets the window title to the color name, and sets it again at every prompt,
 6. prints the color name in big letters, in the figlet font *ANSI Shadow*. Long names break at their capital letters to fit the window.
 
-**About the title:** programs that set their own title (Claude Code, vim, ssh, etc.) replace it while they run. Run `whatcolor` to check.
+**About the title:** programs that set their own title (Claude Code, vim, ssh, etc.) replace it while they run. It comes back at the next prompt. Run `whatcolor` to check.
 
 ## Customize
 
-Define your own palette **before** the `source` line in `~/.zshrc`. Each entry is `Name BACKGROUND TEXT`, with hex colors:
+Define your own palette **before** the `source` line in `~/.zshrc` (or `~/.bashrc`). Each entry is `Name BACKGROUND TEXT`, with hex colors:
 
 ```zsh
 TERMINAL_COLORS=(
@@ -81,13 +90,14 @@ TERMINAL_COLORS_BANNER=0
 
 ## Notes
 
-- **Apple Terminal and iTerm2 only.** In other terminals it does nothing. Colors are set with escape sequences, which change only the current session (tab or split pane), not your profile. Tested with Terminal on macOS 26.
+- **Where it runs:** Apple Terminal and iTerm2 on macOS, and terminals on Linux (GNOME Terminal, Konsole, kitty, Alacritty, WezTerm, xterm, foot, Ghostty and others that support the OSC 10/11 color sequences). Other macOS terminals are left alone. Colors are set with escape sequences, which change only the current session (tab or split pane), not your profile. Tested with Terminal and iTerm2 on macOS 26, and with zsh 5.9 and bash 5.2 on Debian.
+- **Skipped on purpose:** over ssh (it would recolor your local window), inside tmux or screen, on the Linux text console, and in non-interactive shells. macOS's built-in `/bin/bash` (3.2) is too old; it does nothing there.
 - **Apple Silicon + Rosetta:** if Terminal is set to "Open using Rosetta", AppleScript fails with `can't open default scripting component`. The script works around this by running AppleScript natively. You can also uncheck *Open using Rosetta* in Terminal's Get Info window.
 - Colors are random, so two windows can occasionally match. Use `newcolor`.
 
 ## Uninstall
 
-Remove the `source ~/.terminal-colors.zsh` line from `~/.zshrc` and delete `~/.terminal-colors.zsh`.
+Remove the `source ~/.terminal-colors.zsh` line from `~/.zshrc` and delete `~/.terminal-colors.zsh`. On Linux with bash: remove the `source ~/.terminal-colors.sh` line from `~/.bashrc` and delete `~/.terminal-colors.sh`.
 
 ## License
 

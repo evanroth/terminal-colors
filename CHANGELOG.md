@@ -2,6 +2,12 @@
 
 To upgrade, see [Upgrade](README.md#upgrade) in the README.
 
+## 1.1.0 (2026-11-17)
+
+- Linux support: GNOME Terminal, Konsole, kitty, Alacritty, WezTerm, xterm and other terminals that understand the OSC 10/11 color sequences.
+- bash support: the same file now works in zsh and bash 4 or newer. Source it from `~/.bashrc`.
+- The color name goes back into the window title at every prompt, after programs like Claude Code or vim change it.
+
 ## 1.0.4 (2026-10-04)
 
 - `upgradecolors` command: downloads the latest version over your copy. It checks the download first and leaves your copy alone if anything looks wrong.

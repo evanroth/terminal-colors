@@ -1,13 +1,14 @@
 # terminal-colors.zsh
-# Gives every new macOS Terminal or iTerm2 window/tab a random HTML color name
-# as its background, with matching readable text, and shows the name in the
-# title.
+# Gives every new terminal window/tab a random HTML color name as its
+# background, with matching readable text, and shows the name in the title.
+# Works in macOS Terminal, iTerm2 and Linux terminals (GNOME Terminal,
+# Konsole, kitty, Alacritty, WezTerm, xterm, ...), from zsh or bash 4+.
 #
 # https://github.com/evanroth/terminal-colors
 # Evan Roth, public domain (CC0)
-# Version 1.0.4 (check yours with: echo $TERMINAL_COLORS_VERSION)
+# Version 1.1.0 (check yours with: echo $TERMINAL_COLORS_VERSION)
 #
-# Install: source this file from ~/.zshrc
+# Install: source this file from ~/.zshrc or ~/.bashrc
 # Commands:
 #   newcolor     pick another random color for this window
 #   whatcolor    print this window's color name
@@ -17,40 +18,78 @@
 # Customize: define TERMINAL_COLORS before sourcing, as
 #   "Name BACKGROUNDHEX TEXTHEX" entries, e.g.
 #   TERMINAL_COLORS=("Tomato FF6347 FFFFFF" "Gold FFD700 1F2D3D")
+#
+# The same file runs in zsh and bash, so the code sticks to what both
+# understand. Functions start with "emulate -L ksh" in zsh, which makes zsh
+# split words and number arrays from 0 the way bash does.
 
-typeset -g TERMINAL_COLORS_VERSION=1.0.4
-typeset -g TERMINAL_COLORS_FILE=${${(%):-%x}:A}   # this file, for upgradecolors
+# bash 3 (macOS's /bin/bash) is too old; zsh and bash 4+ are fine
+if [ -n "$BASH_VERSION" ] && [ "${BASH_VERSINFO[0]}" -lt 4 ]; then
+  return 0
+fi
+
+typeset -g TERMINAL_COLORS_VERSION=1.1.0
+if [ -n "$ZSH_VERSION" ]; then   # this file, for upgradecolors
+  typeset -g TERMINAL_COLORS_FILE=${${(%):-%x}:A}
+else
+  TERMINAL_COLORS_FILE=$(cd -P -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/${BASH_SOURCE[0]##*/}
+fi
+
+# Is version $1 newer than version $2?
+_terminal_colors_newer() {
+  [ -z "$ZSH_VERSION" ] || emulate -L ksh
+  local a=$1. b=$2. x y
+  while [ -n "$a$b" ]; do
+    x=${a%%.*} y=${b%%.*} a=${a#*.} b=${b#*.}
+    [ "${x:-0}" -gt "${y:-0}" ] && return 0
+    [ "${x:-0}" -lt "${y:-0}" ] && return 1
+  done
+  return 1
+}
 
 # Download the latest version from GitHub over this file. Checks the download
 # first and leaves your copy alone if anything looks wrong.
 upgradecolors() {
-  emulate -L zsh
-  autoload -Uz is-at-least
+  [ -z "$ZSH_VERSION" ] || emulate -L ksh
   local url=https://raw.githubusercontent.com/evanroth/terminal-colors/main/terminal-colors.zsh
-  local tmp=$(mktemp) new
-  if ! curl -fsSL $url -o $tmp; then
-    print -u2 "upgradecolors: download failed, nothing changed"
-    rm -f $tmp; return 1
+  local tmp new shell=${BASH:-zsh}
+  tmp=$(mktemp) || return 1
+  if ! curl -fsSL "$url" -o "$tmp"; then
+    echo "upgradecolors: download failed, nothing changed" >&2
+    rm -f "$tmp"; return 1
   fi
-  new=${${(M)${(f)"$(<$tmp)"}:#typeset -g TERMINAL_COLORS_VERSION=*}#*=}
-  if [[ -z $new ]] || ! zsh -n $tmp; then
-    print -u2 "upgradecolors: the download doesn't look right, nothing changed"
-    rm -f $tmp; return 1
+  new=$(sed -n 's/^typeset -g TERMINAL_COLORS_VERSION=//p' "$tmp")
+  if [ -n "$new" ] && ! _terminal_colors_newer "$new" "$TERMINAL_COLORS_VERSION"; then
+    echo "Terminal Colors is up to date ($TERMINAL_COLORS_VERSION)."
+    rm -f "$tmp"; return 0
   fi
-  if is-at-least $new $TERMINAL_COLORS_VERSION; then
-    print "Terminal Colors is up to date ($TERMINAL_COLORS_VERSION)."
-    rm -f $tmp; return
+  if [ -z "$new" ] || ! "$shell" -n "$tmp" 2>/dev/null; then
+    echo "upgradecolors: the download doesn't look right, nothing changed" >&2
+    rm -f "$tmp"; return 1
   fi
-  cat $tmp > $TERMINAL_COLORS_FILE && rm -f $tmp || return 1
-  print "Terminal Colors upgraded from $TERMINAL_COLORS_VERSION to $new. Open a new window to use it."
+  cat "$tmp" > "$TERMINAL_COLORS_FILE" && rm -f "$tmp" || return 1
+  echo "Terminal Colors upgraded from $TERMINAL_COLORS_VERSION to $new. Open a new window to use it."
 }
 
-if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -o interactive ]]; then
+# Run only in interactive shells, in terminals that understand the color
+# escape sequences
+_terminal_colors_enabled() {
+  case $- in *i*) ;; *) return 1 ;; esac
+  case $TERM_PROGRAM in Apple_Terminal|iTerm.app) return 0 ;; esac
+  case $OSTYPE in linux*) ;; *) return 1 ;; esac
+  # Not over ssh (it would recolor the local window), not inside tmux or
+  # screen, not on the text console
+  [ -z "$SSH_CONNECTION$SSH_TTY$TMUX$STY" ] || return 1
+  case $TERM in ''|dumb|linux|screen*|tmux*) return 1 ;; esac
+  return 0
+}
+
+if _terminal_colors_enabled; then
 
   # The 148 HTML/CSS color names. Text color follows W3Schools'
   # color-names page: white if brightness (0.299R+0.587G+0.114B) < 150,
   # otherwise #1F2D3D.
-  if (( ! ${+TERMINAL_COLORS} )); then
+  if [ -z "${TERMINAL_COLORS+set}" ]; then
     TERMINAL_COLORS=(
       "AliceBlue F0F8FF 1F2D3D"
       "AntiqueWhite FAEBD7 1F2D3D"
@@ -204,140 +243,198 @@ if [[ ( $TERM_PROGRAM == "Apple_Terminal" || $TERM_PROGRAM == "iTerm.app" ) && -
   fi
 
   # Letters A-Z of the figlet font "ANSI Shadow" (a TheDraw font converted
-  # with patorjk.com's FIGfont editor), 6 rows each, separated by |
-  typeset -gA _terminal_colors_glyphs=(
-    A ' █████╗ |██╔══██╗|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝'
-    B '██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██████╔╝|╚═════╝ '
-    C ' ██████╗|██╔════╝|██║     |██║     |╚██████╗| ╚═════╝'
-    D '██████╗ |██╔══██╗|██║  ██║|██║  ██║|██████╔╝|╚═════╝ '
-    E '███████╗|██╔════╝|█████╗  |██╔══╝  |███████╗|╚══════╝'
-    F '███████╗|██╔════╝|█████╗  |██╔══╝  |██║     |╚═╝     '
-    G ' ██████╗ |██╔════╝ |██║  ███╗|██║   ██║|╚██████╔╝| ╚═════╝ '
-    H '██╗  ██╗|██║  ██║|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝'
-    I '██╗|██║|██║|██║|██║|╚═╝'
-    J '     ██╗|     ██║|     ██║|██   ██║|╚█████╔╝| ╚════╝ '
-    K '██╗  ██╗|██║ ██╔╝|█████╔╝ |██╔═██╗ |██║  ██╗|╚═╝  ╚═╝'
-    L '██╗     |██║     |██║     |██║     |███████╗|╚══════╝'
-    M '███╗   ███╗|████╗ ████║|██╔████╔██║|██║╚██╔╝██║|██║ ╚═╝ ██║|╚═╝     ╚═╝'
-    N '███╗   ██╗|████╗  ██║|██╔██╗ ██║|██║╚██╗██║|██║ ╚████║|╚═╝  ╚═══╝'
-    O ' ██████╗ |██╔═══██╗|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ '
-    P '██████╗ |██╔══██╗|██████╔╝|██╔═══╝ |██║     |╚═╝     '
-    Q ' ██████╗ |██╔═══██╗|██║   ██║|██║▄▄ ██║|╚██████╔╝| ╚══▀▀═╝ '
-    R '██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██║  ██║|╚═╝  ╚═╝'
-    S '███████╗|██╔════╝|███████╗|╚════██║|███████║|╚══════╝'
-    T '████████╗|╚══██╔══╝|   ██║   |   ██║   |   ██║   |   ╚═╝   '
-    U '██╗   ██╗|██║   ██║|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ '
-    V '██╗   ██╗|██║   ██║|██║   ██║|╚██╗ ██╔╝| ╚████╔╝ |  ╚═══╝  '
-    W '██╗    ██╗|██║    ██║|██║ █╗ ██║|██║███╗██║|╚███╔███╔╝| ╚══╝╚══╝ '
-    X '██╗  ██╗|╚██╗██╔╝| ╚███╔╝ | ██╔██╗ |██╔╝ ██╗|╚═╝  ╚═╝'
-    Y '██╗   ██╗|╚██╗ ██╔╝| ╚████╔╝ |  ╚██╔╝  |   ██║   |   ╚═╝   '
-    Z '███████╗|╚══███╔╝|  ███╔╝ | ███╔╝  |███████╗|╚══════╝'
-  )
+  # with patorjk.com's FIGfont editor): sets g to letter $1's 6 rows,
+  # separated by |
+  _terminal_colors_glyph() {
+    case $1 in
+      A|a) g=' █████╗ |██╔══██╗|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝' ;;
+      B|b) g='██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██████╔╝|╚═════╝ ' ;;
+      C|c) g=' ██████╗|██╔════╝|██║     |██║     |╚██████╗| ╚═════╝' ;;
+      D|d) g='██████╗ |██╔══██╗|██║  ██║|██║  ██║|██████╔╝|╚═════╝ ' ;;
+      E|e) g='███████╗|██╔════╝|█████╗  |██╔══╝  |███████╗|╚══════╝' ;;
+      F|f) g='███████╗|██╔════╝|█████╗  |██╔══╝  |██║     |╚═╝     ' ;;
+      G|g) g=' ██████╗ |██╔════╝ |██║  ███╗|██║   ██║|╚██████╔╝| ╚═════╝ ' ;;
+      H|h) g='██╗  ██╗|██║  ██║|███████║|██╔══██║|██║  ██║|╚═╝  ╚═╝' ;;
+      I|i) g='██╗|██║|██║|██║|██║|╚═╝' ;;
+      J|j) g='     ██╗|     ██║|     ██║|██   ██║|╚█████╔╝| ╚════╝ ' ;;
+      K|k) g='██╗  ██╗|██║ ██╔╝|█████╔╝ |██╔═██╗ |██║  ██╗|╚═╝  ╚═╝' ;;
+      L|l) g='██╗     |██║     |██║     |██║     |███████╗|╚══════╝' ;;
+      M|m) g='███╗   ███╗|████╗ ████║|██╔████╔██║|██║╚██╔╝██║|██║ ╚═╝ ██║|╚═╝     ╚═╝' ;;
+      N|n) g='███╗   ██╗|████╗  ██║|██╔██╗ ██║|██║╚██╗██║|██║ ╚████║|╚═╝  ╚═══╝' ;;
+      O|o) g=' ██████╗ |██╔═══██╗|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ ' ;;
+      P|p) g='██████╗ |██╔══██╗|██████╔╝|██╔═══╝ |██║     |╚═╝     ' ;;
+      Q|q) g=' ██████╗ |██╔═══██╗|██║   ██║|██║▄▄ ██║|╚██████╔╝| ╚══▀▀═╝ ' ;;
+      R|r) g='██████╗ |██╔══██╗|██████╔╝|██╔══██╗|██║  ██║|╚═╝  ╚═╝' ;;
+      S|s) g='███████╗|██╔════╝|███████╗|╚════██║|███████║|╚══════╝' ;;
+      T|t) g='████████╗|╚══██╔══╝|   ██║   |   ██║   |   ██║   |   ╚═╝   ' ;;
+      U|u) g='██╗   ██╗|██║   ██║|██║   ██║|██║   ██║|╚██████╔╝| ╚═════╝ ' ;;
+      V|v) g='██╗   ██╗|██║   ██║|██║   ██║|╚██╗ ██╔╝| ╚████╔╝ |  ╚═══╝  ' ;;
+      W|w) g='██╗    ██╗|██║    ██║|██║ █╗ ██║|██║███╗██║|╚███╔███╔╝| ╚══╝╚══╝ ' ;;
+      X|x) g='██╗  ██╗|╚██╗██╔╝| ╚███╔╝ | ██╔██╗ |██╔╝ ██╗|╚═╝  ╚═╝' ;;
+      Y|y) g='██╗   ██╗|╚██╗ ██╔╝| ╚████╔╝ |  ╚██╔╝  |   ██║   |   ╚═╝   ' ;;
+      Z|z) g='███████╗|╚══███╔╝|  ███╔╝ | ███╔╝  |███████╗|╚══════╝' ;;
+      *) g= ;;
+    esac
+  }
 
-  # Draw a word in big letters into $reply (6 rows). Each letter slides left
-  # until it touches the previous one (figlet's "fitting" layout).
+  # Draw a word in big letters into the caller's rows array (6 rows). Each
+  # letter slides left until it touches the previous one (figlet's "fitting"
+  # layout).
   _terminal_colors_art() {
-    setopt localoptions extendedglob
-    local ch a mid
-    local -i r k n x cut
-    local -a g
-    reply=('' '' '' '' '' '')
-    for ch in ${(s::)${(U)1}}; do
-      (( ${+_terminal_colors_glyphs[$ch]} )) || continue
-      g=("${(@s:|:)_terminal_colors_glyphs[$ch]}")
-      k=${#reply[1]}
-      for r in {1..6}; do
-        n=$(( ${#reply[r]} - ${#${reply[r]%% #}} + ${#g[r]} - ${#${g[r]## #}} ))
-        (( ${#reply[r]} < k )) && k=${#reply[r]}
+    [ -z "$ZSH_VERSION" ] || emulate -L ksh
+    local word=$1 g rest a gr mid c
+    local -i i r k n x cut
+    local -a gl
+    rows=('' '' '' '' '' '')
+    for (( i = 0; i < ${#word}; i++ )); do
+      _terminal_colors_glyph "${word:$i:1}"
+      [ -n "$g" ] || continue
+      rest=$g
+      for (( r = 0; r < 6; r++ )); do gl[r]=${rest%%|*} rest=${rest#*|}; done
+      k=${#rows[0]}
+      for (( r = 0; r < 6; r++ )); do
+        a=${rows[r]} gr=${gl[r]}
+        rest=${a##*[! ]} n=${#rest}   # trailing spaces of the row so far
+        rest=${gr%%[! ]*} n+=${#rest} # plus leading spaces of the letter
+        (( ${#a} < k )) && k=${#a}
         (( n < k )) && k=n
       done
-      for r in {1..6}; do
-        a=${reply[r]} cut=$(( ${#a} - k )) mid=
-        for (( x = 1; x <= k; x++ )); do
-          if [[ ${a[cut+x]} != ' ' ]]; then mid+=${a[cut+x]}; else mid+=${g[r][x]:- }; fi
+      for (( r = 0; r < 6; r++ )); do
+        a=${rows[r]} gr=${gl[r]} cut=$(( ${#rows[r]} - k )) mid=
+        for (( x = 0; x < k; x++ )); do
+          c=${a:$((cut + x)):1}
+          [ "$c" = ' ' ] && c=${gr:$x:1} && c=${c:- }
+          mid+=$c
         done
-        reply[r]=${a[1,cut]}$mid${g[r][k+1,-1]}
+        rows[r]=${a:0:$cut}$mid${gr:$k}
       done
     done
-    reply=("${(@)reply%% #}")
+    for (( r = 0; r < 6; r++ )); do
+      a=${rows[r]} rest=${a##*[! ]} rows[r]=${a:0:$(( ${#a} - ${#rest} ))}
+    done
   }
 
   # Print the color name in big letters, breaking long names at their
   # capital letters to fit the window. Outlines are dimmed.
   _terminal_colors_banner() {
-    setopt localoptions extendedglob
-    [[ ${#${:-█}} == 1 ]] || return   # needs a UTF-8 locale
-    local word cur row dim=$'\e[2m' undim=$'\e[22m'
-    local -i width
-    local -a words lines reply
-    words=(${(s: :)1//(#b)([A-Z])/ $match[1]})
-    for word in $words; do
-      _terminal_colors_art $cur$word
+    [ -z "$ZSH_VERSION" ] || emulate -L ksh
+    local block='█'
+    [ ${#block} = 1 ] || return 0   # needs a UTF-8 locale
+    local name=$1 word= cur= row out c dim=$'\e[2m' undim=$'\e[22m'
+    local -i i width dimmed cols=${COLUMNS:-0}
+    local -a words lines rows
+    (( cols > 0 )) || cols=$(tput cols 2>/dev/null || echo 80)
+    for (( i = 0; i < ${#name}; i++ )); do
+      c=${name:$i:1}
+      case $c in
+        ' ') [ -n "$word" ] && words+=("$word"); word= ;;
+        [[:upper:]]) [ -n "$word" ] && words+=("$word"); word=$c ;;
+        *) word+=$c ;;
+      esac
+    done
+    [ -n "$word" ] && words+=("$word")
+    for word in "${words[@]}"; do
+      _terminal_colors_art "$cur$word"
       width=0
-      for row in $reply; (( ${#row} > width )) && width=${#row}
-      if [[ -n $cur ]] && (( width >= COLUMNS )); then
-        lines+=($cur) cur=$word
+      for row in "${rows[@]}"; do (( ${#row} > width )) && width=${#row}; done
+      if [ -n "$cur" ] && (( width >= cols )); then
+        lines+=("$cur") cur=$word
       else
         cur+=$word
       fi
     done
-    lines+=($cur)
-    print
-    for word in $lines; do
-      _terminal_colors_art $word
-      for row in $reply; print -r -- "${row//(#m)[^█ ]##/$dim$MATCH$undim}"
+    lines+=("$cur")
+    echo
+    for word in "${lines[@]}"; do
+      _terminal_colors_art "$word"
+      for row in "${rows[@]}"; do
+        out= dimmed=0
+        for (( i = 0; i < ${#row}; i++ )); do
+          c=${row:$i:1}
+          case $c in
+            '█'|' ') (( dimmed )) && out+=$undim && dimmed=0 ;;
+            *) (( dimmed )) || { out+=$dim; dimmed=1; } ;;
+          esac
+          out+=$c
+        done
+        (( dimmed )) && out+=$undim
+        printf '%s\n' "$out"
+      done
     done
-    print
+    echo
   }
 
-  _terminal_colors_apply() {  # name background-hex text-hex
-    export TERMINAL_COLOR_NAME=$1 TERMINAL_COLOR_BG=$2
+  _terminal_colors_title() { printf '\033]0;%s\007' "$TERMINAL_COLOR_NAME"; }
 
-    # Window title (programs like Claude Code may replace it while they run)
-    print -n "\e]0;$1\a"
+  _terminal_colors_apply() {  # name background-hex text-hex
+    [ -z "$ZSH_VERSION" ] || emulate -L ksh
+    export TERMINAL_COLOR_NAME=$1 TERMINAL_COLOR_BG=$2
+    local bg=$2 fg=$3 key
+
+    # Window title (programs like Claude Code may replace it while they run;
+    # it comes back at the next prompt)
+    _terminal_colors_title
 
     # iTerm2 sets colors with escape sequences, for this session only
-    if [[ $TERM_PROGRAM == "iTerm.app" ]]; then
-      local key
-      print -n "\e]1337;SetColors=bg=$2\a"
-      for key in fg bold curbg; print -n "\e]1337;SetColors=$key=$3\a"
-      return
+    if [ "$TERM_PROGRAM" = iTerm.app ]; then
+      printf '\033]1337;SetColors=bg=%s\007' "$bg"
+      for key in fg bold curbg; do printf '\033]1337;SetColors=%s=%s\007' $key "$fg"; done
+      return 0
     fi
 
     # Background, text and cursor colors with escape sequences: instant,
     # and they survive a terminal reset
-    print -n "\e]11;rgb:${2[1,2]}/${2[3,4]}/${2[5,6]}\a"
-    print -n "\e]10;rgb:${3[1,2]}/${3[3,4]}/${3[5,6]}\a\e]12;rgb:${3[1,2]}/${3[3,4]}/${3[5,6]}\a"
+    printf '\033]11;rgb:%s/%s/%s\007' "${bg:0:2}" "${bg:2:2}" "${bg:4:2}"
+    printf '\033]10;rgb:%s/%s/%s\007\033]12;rgb:%s/%s/%s\007' \
+      "${fg:0:2}" "${fg:2:2}" "${fg:4:2}" "${fg:0:2}" "${fg:2:2}" "${fg:4:2}"
 
-    # Bold text color has no escape sequence, so set it with AppleScript in
-    # the background, on the tab whose tty is ours
-    local fg="{$(( 16#${3[1,2]} * 257 )), $(( 16#${3[3,4]} * 257 )), $(( 16#${3[5,6]} * 257 ))}"
+    # Apple Terminal's bold text color has no escape sequence, so set it with
+    # AppleScript in the background, on the tab whose tty is ours
+    [ "$TERM_PROGRAM" = Apple_Terminal ] || return 0
+    local bold="{$(( 16#${fg:0:2} * 257 )), $(( 16#${fg:2:2} * 257 )), $(( 16#${fg:4:2} * 257 ))}"
+    local tty=${TTY:-$(tty)}
 
     # AppleScript fails inside Rosetta (Intel emulation) on Apple Silicon,
     # so always run it natively there.
-    local osa=(/usr/bin/osascript)
-    [[ $(sysctl -n hw.optional.arm64 2>/dev/null) == 1 ]] && osa=(arch -arm64 /usr/bin/osascript)
+    local -a osa=(/usr/bin/osascript)
+    [ "$(sysctl -n hw.optional.arm64 2>/dev/null)" = 1 ] && osa=(arch -arm64 /usr/bin/osascript)
 
-    $osa -e "tell application \"Terminal\"
+    ( "${osa[@]}" -e "tell application \"Terminal\"
       repeat with w in windows
         repeat with t in tabs of w
-          if tty of t is \"$TTY\" then
-            set bold text color of t to $fg
+          if tty of t is \"$tty\" then
+            set bold text color of t to $bold
             return
           end if
         end repeat
       end repeat
-    end tell" >/dev/null 2>&1 &!
+    end tell" >/dev/null 2>&1 & )
   }
 
   newcolor() {
-    local r=$(( RANDOM % ${#TERMINAL_COLORS} + 1 ))
-    _terminal_colors_apply ${=TERMINAL_COLORS[$r]}
-    [[ $1 == -q ]] || print $TERMINAL_COLOR_NAME
+    [ -z "$ZSH_VERSION" ] || emulate -L ksh
+    local quiet=$1
+    set -- ${TERMINAL_COLORS[RANDOM % ${#TERMINAL_COLORS[@]}]}
+    _terminal_colors_apply "$1" "$2" "$3"
+    [ "$quiet" = -q ] || echo "$TERMINAL_COLOR_NAME"
   }
 
-  whatcolor() { print $TERMINAL_COLOR_NAME }
+  whatcolor() { echo "$TERMINAL_COLOR_NAME"; }
 
   newcolor -q
-  [[ $TERMINAL_COLORS_BANNER == 0 ]] || _terminal_colors_banner $TERMINAL_COLOR_NAME
+  [ "$TERMINAL_COLORS_BANNER" = 0 ] || _terminal_colors_banner "$TERMINAL_COLOR_NAME"
+
+  # Put the color name back in the title at every prompt, after programs
+  # (and some default prompts) change it
+  if [ -n "$ZSH_VERSION" ]; then
+    case " ${precmd_functions[*]} " in
+      *" _terminal_colors_title "*) ;;
+      *) precmd_functions+=(_terminal_colors_title) ;;
+    esac
+  else
+    case $PS1 in
+      *TERMINAL_COLOR_NAME*) ;;
+      *) PS1+='\[\e]0;${TERMINAL_COLOR_NAME}\a\]' ;;
+    esac
+  fi
 fi
